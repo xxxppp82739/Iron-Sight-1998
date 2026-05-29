@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>FPS Training Range 1998</title>
+
+<style>
+body {
+    margin: 0;
+    background: #0b0f0b;
+    color: #00ff99;
+    font-family: "Courier New", monospace;
+    text-align: center;
+}
+
+/* BOOT SCREEN */
+#boot {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background: black;
+    color: #00ff99;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    white-space: pre;
+}
+
+/* GAME UI */
+#ui {
+    padding: 10px;
+    text-shadow: 0 0 5px #00ff99;
+}
+
+canvas {
+    background: #111;
+    border: 2px solid #00ff99;
+    box-shadow: 0 0 15px #00ff99;
+}
+
+button {
+    background: black;
+    color: #00ff99;
+    border: 1px solid #00ff99;
+    padding: 8px;
+    margin: 4px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #00ff99;
+    color: black;
+}
+</style>
+</head>
+
+<body>
+
+<!-- 🧱 BOOT SCREEN -->
+<div id="boot">
+LOADING FPS TRAINING RANGE v1.0 (1998 BUILD)
+
+INITIALIZING GRAPHICS... OK
+INITIALIZING INPUT... OK
+LOADING TARGET SYSTEM... OK
+
+PRESS ANY KEY TO START
+</div>
+
+<div id="ui">
+<h2>🎯 FPS TRAINING RANGE</h2>
+<p>Score: <span id="score">0</span> | Money: <span id="money">0</span></p>
+
+<button onclick="upgrade('damage')">Damage +</button>
+<button onclick="upgrade('speed')">Fire Rate +</button>
+<button onclick="upgrade('size')">Target Size +</button>
+</div>
+
+<canvas id="game" width="800" height="450"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+let started = false;
+
+/* ---------- START GAME ---------- */
+document.addEventListener("keydown", startGame);
+document.addEventListener("click", startGame);
+
+function startGame() {
+    if (started) return;
+    started = true;
+    document.getElementById("boot").style.display = "none";
+}
+
+/* ---------- GAME STATE ---------- */
+let score = 0;
+let money = 0;
+
+let damage = 1;
+let fireRate = 900;
+let lastShot = 0;
+
+let spread = 15;
+let pelletCount = 2;
+
+let targetSize = 25;
+
+let targets = [];
+
+/* ---------- TARGET ---------- */
+class Target {
+    constructor() {
+        this.x = Math.random() * (canvas.width - 100) + 50;
+        this.y = Math.random() * (canvas.height - 100) + 50;
+        this.r = targetSize;
+        this.hp = 3;
+    }
+
+    draw() {
+        ctx.beginPath();
+        ctx.fillStyle = "red";
+        ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "white";
+        ctx.fillText(this.hp, this.x - 4, this.y + 4);
+    }
+}
+
+/* ---------- SPAWN ---------- */
+setInterval(() => {
+    if (started) targets.push(new Target());
+}, 1200);
+
+/* ---------- SHOOT (DOUBLE BARREL SHOTGUN) ---------- */
+canvas.addEventListener("click", (e) => {
+    if (!started) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+
+    const now = Date.now();
+    if (now - lastShot < fireRate) return;
+    lastShot = now;
+
+    for (let p = 0; p < pelletCount; p++) {
+
+        let sx = mx + (Math.random() - 0.5) * spread;
+        let sy = my + (Math.random() - 0.5) * spread;
+
+        for (let i = 0; i < targets.length; i++) {
+            let t = targets[i];
+
+            let dx = sx - t.x;
+            let dy = sy - t.y;
+            let dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < t.r) {
+                t.hp -= damage;
+
+                if (t.hp <= 0) {
+                    targets.splice(i, 1);
+                    score += 10;
+                    money += 5;
+                }
+                break;
+            }
+        }
+    }
+});
+
+/* ---------- UPGRADES ---------- */
+function upgrade(type) {
+    if (type === "damage" && money >= 10) {
+        money -= 10;
+        damage++;
+    }
+
+    if (type === "speed" && money >= 15) {
+        money -= 15;
+        fireRate = Math.max(300, fireRate - 100);
+    }
+
+    if (type === "size" && money >= 12) {
+        money -= 12;
+        targetSize += 3;
+    }
+}
+
+/* ---------- UI ---------- */
+function updateUI() {
+    document.getElementById("score").innerText = score;
+    document.getElementById("money").innerText = money;
+}
+
+/* ---------- LOOP ---------- */
+function loop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.font = "14px Courier New";
+
+    for (let t of targets) {
+        t.draw();
+    }
+
+    updateUI();
+    requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+
+</body>
+</html>
